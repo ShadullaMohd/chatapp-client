@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
+// ✅ Base backend URL from environment
+const API_URL = import.meta.env.VITE_SOCKET_URL;
+
 export default function useChatSocket(
   username,
   onMessage,
@@ -16,7 +19,7 @@ export default function useChatSocket(
     if (!username) return;
 
     const token = localStorage.getItem("token");
-    const wsUrl = `ws://localhost:5000?token=${token}`;
+    const wsUrl = `${API_URL}?token=${token}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 

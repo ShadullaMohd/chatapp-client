@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+// ✅ Base backend URL from environment
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function ChatArea({
   messages,
   typingUser,
@@ -19,7 +22,7 @@ export default function ChatArea({
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `http://localhost:5000/api/users/lastSeen/${privateTo}`,
+          `${API_URL}/api/users/lastSeen/${privateTo}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setLastSeen(res.data.last_seen);

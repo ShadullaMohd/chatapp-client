@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+// ✅ Base backend URL from environment
+const API_URL = import.meta.env.VITE_API_URL;
+
 // 🕓 Helper to format “last seen” text
 function timeAgo(timestamp) {
   if (!timestamp) return "unknown";
@@ -33,7 +36,7 @@ export default function FriendList({
         const results = await Promise.all(
           friends.map((f) =>
             axios
-              .get(`http://localhost:5000/api/users/lastSeen/${f.username}`)
+              .get(`${API_URL}/api/users/lastSeen/${f.username}`)
               .then((res) => ({ id: f.id, last_seen: res.data.last_seen }))
               .catch(() => ({ id: f.id, last_seen: null }))
           )

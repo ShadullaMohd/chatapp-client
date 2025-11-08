@@ -3,6 +3,9 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast"; // ✅ added
 
+// ✅ Base backend URL from environment
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPass] = useState("");
@@ -17,7 +20,7 @@ export default function Login() {
     }
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${API_URL}/api/auth/login`, {
         email, // ✅ use email now
         password,
       });

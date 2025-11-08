@@ -7,6 +7,8 @@ import FriendList from "../components/Chat/FriendsList";
 import useChatSocket from "../components/Chat/useChatSocket";
 import toast, { Toaster } from "react-hot-toast"; // ✅ added
 
+const API_URL = import.meta.env.VITE_API_URL; // ✅ base backend URL
+
 export default function ChatRoom() {
   const [messages, setMessages] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -33,12 +35,10 @@ export default function ChatRoom() {
     activeChatRef.current = privateTo;
   }, [privateTo]);
 
-  /**
-   * ✅ Called when a friend request is accepted in real time
-   */
+  /** ✅ When a friend request is accepted in real time */
   const handleFriendAccepted = (fromUsername) => {
     console.log("✅ Friend accepted in real time:", fromUsername);
-    fetchFriends(); // refresh friend list immediately
+    fetchFriends();
     setRequests((prev) =>
       Array.isArray(prev)
         ? prev.filter((r) => r.username !== fromUsername)
@@ -46,16 +46,13 @@ export default function ChatRoom() {
     );
   };
 
-  /**
-   * ✅ WebSocket setup with message + friend events
-   */
+  /** ✅ WebSocket setup with message + friend events */
   const { socket, safeSend, onlineUsers } = useChatSocket(
     username,
     (newMsg) => {
-      if (newMsg.type === "chat") return; // ignore global chat
-      setMessages((prev) => [...prev, newMsg]); // add to UI instantly
+      if (newMsg.type === "chat") return;
+      setMessages((prev) => [...prev, newMsg]);
 
-      // 🔴 Unread counter for inactive chats
       if (
         newMsg.type === "private" &&
         !newMsg.isHistory &&
@@ -78,7 +75,7 @@ export default function ChatRoom() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /** ✅ Save / restore last read map from localStorage */
+  /** ✅ Save / restore last read map */
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("lastReadMap")) || {};
     setLastReadMap(saved);
@@ -88,14 +85,12 @@ export default function ChatRoom() {
     localStorage.setItem("lastReadMap", JSON.stringify(lastReadMap));
   }, [lastReadMap]);
 
-  /**
-   * ✅ Fetch chat history between logged-in user and selected friend
-   */
+  /** ✅ Fetch chat history between logged-in user and selected friend */
   const fetchChatHistory = async (selectedUser) => {
     try {
       setMessages([]);
-      const resUser = await fetch("http://localhost:5000/api/auth/users");
-      const users = await resUser.json();
+      const resUser = await axios.get(`${API_URL}/api/auth/users`);
+      const users = resUser.data;
       const receiver = users.find((u) => u.username === selectedUser);
       if (!receiver) return;
 
@@ -104,11 +99,10 @@ export default function ChatRoom() {
       setUnreadCounts((prev) => ({ ...prev, [selectedUser]: 0 }));
       setLastReadMap((prev) => ({ ...prev, [selectedUser]: Date.now() }));
 
-      const res = await fetch(
-        `http://localhost:5000/api/chat/history/${receiver.id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
+      const res = await axios.get(`${API_URL}/api/chat/history/${receiver.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = res.data;
       if (!data.messages) return;
 
       const formatted = data.messages.map((m) => ({
@@ -127,15 +121,10 @@ export default function ChatRoom() {
     }
   };
 
-  /**
-   * ✅ Fetch friends list from backend
-   */
+  /** ✅ Fetch friends list from backend */
   const fetchFriends = async () => {
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/friends/list/${userId}`
-      );
-      // 🧹 Remove duplicates by ID
+      const res = await axios.get(`${API_URL}/api/friends/list/${userId}`);
       const unique = Array.isArray(res.data)
         ? res.data.filter(
             (v, i, a) => a.findIndex((t) => t.id === v.id) === i
@@ -147,14 +136,10 @@ export default function ChatRoom() {
     }
   };
 
-  /**
-   * ✅ Fetch incoming friend requests
-   */
+  /** ✅ Fetch incoming friend requests */
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/friends/requests/${userId}`
-      );
+      const res = await axios.get(`${API_URL}/api/friends/requests/${userId}`);
       setRequests(res.data);
     } catch (err) {
       console.error("❌ Error fetching requests:", err);
@@ -167,13 +152,11 @@ export default function ChatRoom() {
     fetchRequests();
   }, [userId]);
 
-  /**
-   * ✅ Add friend by Gmail
-   */
+  /** ✅ Add friend by email */
   const handleAddFriend = async () => {
     if (!friendEmail.trim()) return toast.error("Enter valid email");
     try {
-      await axios.post("http://localhost:5000/api/friends/add", {
+      await axios.post(`${API_URL}/api/friends/add`, {
         requesterEmail: email,
         receiverEmail: friendEmail.trim(),
       });
@@ -185,12 +168,10 @@ export default function ChatRoom() {
     }
   };
 
-  /**
-   * ✅ Accept / Reject / Unfriend logic
-   */
+  /** ✅ Accept / Reject / Unfriend logic */
   const handleAccept = async (id) => {
     try {
-      await axios.post(`http://localhost:5000/api/friends/accept/${id}`);
+      await axios.post(`${API_URL}/api/friends/accept/${id}`);
       fetchFriends();
       fetchRequests();
       setMessages((prev) => [
@@ -201,43 +182,38 @@ export default function ChatRoom() {
         },
       ]);
     } catch {
-       toast.error("Failed to accept request");
+      toast.error("Failed to accept request");
     }
   };
 
   const handleReject = async (id) => {
     try {
-      await axios.post(`http://localhost:5000/api/friends/reject/${id}`);
+      await axios.post(`${API_URL}/api/friends/reject/${id}`);
       fetchRequests();
       toast.success("🚫 Friend request rejected.");
     } catch (err) {
-       toast.error(err.response?.data?.message || "Failed to reject request");
+      toast.error(err.response?.data?.message || "Failed to reject request");
     }
   };
 
   const handleUnfriend = async (friendId) => {
     try {
-      await axios.delete(
-        `http://localhost:5000/api/friends/remove/${userId}/${friendId}`
-      );
+      await axios.delete(`${API_URL}/api/friends/remove/${userId}/${friendId}`);
       fetchFriends();
       toast.success("🗑️ Unfriended successfully.");
     } catch (err) {
-       toast.error(err.response?.data?.message || "Failed to unfriend");
+      toast.error(err.response?.data?.message || "Failed to unfriend");
     }
   };
 
-  /**
-   * ✅ Send private message (real-time + immediate UI update)
-   */
+  /** ✅ Send private message */
   const sendMessage = () => {
     if (!text.trim()) return;
     if (!privateTo) {
-       toast.error("Please select a friend to start chatting privately.");
+      toast.error("Please select a friend to start chatting privately.");
       return;
     }
 
-    // 1️⃣ Update sender’s chat immediately
     const newMessage = {
       from: username,
       to: privateTo,
@@ -248,16 +224,12 @@ export default function ChatRoom() {
     };
     setMessages((prev) => [...prev, newMessage]);
 
-    // 2️⃣ Send to server through WebSocket
     safeSend({ type: "private", to: privateTo, text });
 
-    // 3️⃣ Clear input
     setText("");
   };
 
-  /**
-   * ✍️ Typing indicator logic
-   */
+  /** ✍️ Typing indicator logic */
   const handleTyping = () => {
     if (socket && socket.readyState === WebSocket.OPEN && privateTo) {
       socket.send(
@@ -270,9 +242,7 @@ export default function ChatRoom() {
     }
   };
 
-  /**
-   * 🚪 Logout
-   */
+  /** 🚪 Logout */
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/";
@@ -280,6 +250,7 @@ export default function ChatRoom() {
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-[#1e1e2f] to-[#2d2d44] text-white">
+    <Toaster position="top-center" />
       {/* HEADER */}
       <HeaderBar
         username={username}
@@ -435,6 +406,7 @@ export default function ChatRoom() {
           onClose={() => setShowAddFriend(false)}
         />
       )}
+      
     </div>
   );
 }

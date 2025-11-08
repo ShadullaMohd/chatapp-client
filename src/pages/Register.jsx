@@ -3,6 +3,9 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 
+// ✅ Base backend URL from environment
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -23,7 +26,7 @@ export default function Register() {
       return toast.error("Passwords do not match.");
 
     try {
-      await axios.post("http://localhost:5000/api/auth/register", {
+      await axios.post(`${API_URL}/api/auth/register`, {
         username,
         password,
         email,
@@ -40,7 +43,7 @@ export default function Register() {
   // 🔹 Resend OTP (only re-send, not re-register)
   const resendOtp = async () => {
     try {
-      await axios.post("http://localhost:5000/api/auth/send-otp", {
+      await axios.post(`${API_URL}/api/auth/send-otp`, {
         username,
         email,
       });
@@ -66,7 +69,7 @@ export default function Register() {
   const handleVerify = async () => {
     if (!otp) return toast.success("Enter the OTP sent to your email.");
     try {
-      await axios.post("http://localhost:5000/api/auth/verify-otp", {
+      await axios.post(`${API_URL}/api/auth/verify-otp`, {
         username,
         otp,
       });
@@ -79,6 +82,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#1e1e2f] to-[#2b2b44] px-4 text-white">
+    <Toaster position="top-center" />
       <div className="w-full max-w-md bg-[#141826] rounded-2xl shadow-2xl border border-gray-700 p-8">
         <h1 className="text-3xl font-extrabold text-center text-blue-400 mb-6 tracking-wide">
           {step === "register" ? "Create Account 🚀" : "Verify OTP 🔐"}
