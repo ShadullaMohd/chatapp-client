@@ -67,10 +67,11 @@ export default function Register() {
 
   // 🔹 Verify OTP
   const handleVerify = async () => {
+    debugger
     if (!otp) return toast.success("Enter the OTP sent to your email.");
     try {
       await axios.post(`${API_URL}/api/auth/verify-otp`, {
-        username,
+        email,
         otp,
       });
       toast.success("🎉 Email verified successfully! You can now log in.");
